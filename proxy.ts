@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -26,7 +26,19 @@ export async function middleware(request: NextRequest) {
   )
 
   // 세션 갱신 — 반드시 await, 중간에 다른 로직 삽입 금지
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+  const isPublicPath =
+    pathname.startsWith('/login') || pathname.startsWith('/auth')
+
+  if (!user && !isPublicPath) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (user && pathname === '/login') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
 
   return supabaseResponse
 }
