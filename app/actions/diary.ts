@@ -35,7 +35,7 @@ export async function createDiary(
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
       messages: [
         {
@@ -49,7 +49,8 @@ export async function createDiary(
     if (block.type !== 'text') return { error: '감정 분석에 실패했습니다.' }
 
     emotion = JSON.parse(block.text)
-  } catch {
+  } catch (e) {
+    console.error('[createDiary] Claude API error:', e)
     return { error: '감정 분석 중 오류가 발생했습니다. 다시 시도해주세요.' }
   }
 
