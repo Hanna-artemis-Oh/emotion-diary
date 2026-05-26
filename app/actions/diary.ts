@@ -48,7 +48,8 @@ export async function createDiary(
     const block = message.content[0]
     if (block.type !== 'text') return { error: '감정 분석에 실패했습니다.' }
 
-    emotion = JSON.parse(block.text)
+    const cleaned = block.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+    emotion = JSON.parse(cleaned)
   } catch (e) {
     console.error('[createDiary] Claude API error:', e)
     return { error: '감정 분석 중 오류가 발생했습니다. 다시 시도해주세요.' }
