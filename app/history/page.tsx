@@ -18,12 +18,20 @@ export default async function HistoryPage() {
             <h1 className="text-2xl font-bold text-gray-900">히스토리</h1>
             <p className="mt-1 text-sm text-gray-500">지금까지 기록한 일기 목록</p>
           </div>
-          <Link
-            href="/diary/new"
-            className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
-          >
-            새 일기 쓰기
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/stats"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              통계 보기
+            </Link>
+            <Link
+              href="/diary/new"
+              className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
+            >
+              새 일기 쓰기
+            </Link>
+          </div>
         </div>
 
         {!diaries || diaries.length === 0 ? (
