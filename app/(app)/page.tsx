@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { signOut } from '@/app/actions/auth'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -22,29 +21,12 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-          <span className="text-lg font-bold text-gray-900">🌈 감정 일기</span>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              로그아웃
-            </button>
-          </form>
-        </div>
-      </header>
-
       <div className="max-w-2xl mx-auto px-4 py-10 space-y-8">
-        {/* 인사말 */}
         <div>
           <p className="text-sm text-gray-500">안녕하세요,</p>
           <h1 className="text-2xl font-bold text-gray-900 mt-0.5">{displayName}님 👋</h1>
         </div>
 
-        {/* 새 일기 쓰기 CTA */}
         <Link
           href="/diary/new"
           className="block rounded-2xl bg-gray-900 p-6 text-white hover:bg-gray-800 transition-colors"
@@ -53,7 +35,6 @@ export default async function HomePage() {
           <p className="text-xl font-semibold">새 일기 쓰기 →</p>
         </Link>
 
-        {/* 바로가기 */}
         <div className="grid grid-cols-2 gap-3">
           <Link
             href="/history"
@@ -73,7 +54,6 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {/* 최근 일기 */}
         {recentDiaries && recentDiaries.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -88,7 +68,6 @@ export default async function HomePage() {
                   month: 'short',
                   day: 'numeric',
                 }).format(new Date(diary.created_at))
-
                 return (
                   <li key={diary.id}>
                     <Link href={`/diary/${diary.id}`}>
