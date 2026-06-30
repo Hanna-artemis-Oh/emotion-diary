@@ -96,9 +96,8 @@ export default async function StatsPage({
 
   return (
     <main className="min-h-screen bg-gray-50 py-10">
+      <div className="max-w-5xl mx-auto px-4 space-y-6">
 
-      {/* 좁은 영역: 헤더 / 필터 / 요약 / 빈도 차트 */}
-      <div className="max-w-2xl mx-auto px-4 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">감정 통계</h1>
@@ -138,24 +137,19 @@ export default async function StatsPage({
         </div>
 
         <EmotionCharts frequency={frequency} />
-      </div>
 
-      {/* 넓은 영역: 감정 잔디 */}
-      <div className="max-w-5xl mx-auto px-4 mt-6">
         <EmotionHeatmap data={heatmapData} />
-      </div>
 
-      {/* 좁은 영역: 최근 기록 / 버튼 */}
-      <div className="max-w-2xl mx-auto px-4 mt-6 space-y-6">
         <EmotionTimeline timeline={timeline} />
+
         <Link
           href="/diary/new"
           className="block text-center rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
         >
           오늘 일기 쓰기
         </Link>
-      </div>
 
+      </div>
     </main>
   )
 }
