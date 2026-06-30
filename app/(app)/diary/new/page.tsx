@@ -11,7 +11,7 @@ export default function NewDiaryPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">오늘의 일기</h1>
           <p className="mt-1 text-sm text-gray-500">

@@ -27,7 +27,7 @@ export default async function DiaryPage({
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
 
         {/* 감정 결과 카드 */}
         <div

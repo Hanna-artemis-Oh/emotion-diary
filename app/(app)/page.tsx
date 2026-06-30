@@ -21,7 +21,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-10 space-y-8">
+      <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
         <div>
           <p className="text-sm text-gray-500">안녕하세요,</p>
           <h1 className="text-2xl font-bold text-gray-900 mt-0.5">{displayName}님 👋</h1>

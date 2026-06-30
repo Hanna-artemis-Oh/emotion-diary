@@ -11,7 +11,7 @@ export default async function HistoryPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
 
         <div className="flex items-center justify-between mb-8">
           <div>
