@@ -59,7 +59,7 @@ export default function EmotionCharts({ frequency, timeline }: Props) {
                 width={24}
               />
               <Tooltip
-                formatter={(value: number) => [`${value}회`, '횟수']}
+                formatter={(value) => [`${Number(value)}회`, '횟수']}
                 contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', fontSize: 12 }}
                 cursor={{ fill: '#F9FAFB' }}
               />
