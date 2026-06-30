@@ -14,40 +14,51 @@ const STEP = CELL + GAP
 const KO_MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 const KO_DAYS   = ['일','월','화','수','목','금','토']
 
+// UTC 날짜 문자열 반환 (서버 데이터와 동일한 기준)
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10)
+}
+
+// UTC 기준 오늘 자정 (ms)
+function utcMidnight(dateStr: string) {
+  return new Date(dateStr + 'T00:00:00Z').getTime()
 }
 
 export default function EmotionHeatmap({ data }: { data: HeatmapDay[] }) {
   const dateMap = new Map(data.map((d) => [d.date, d]))
 
-  // 오늘 기준 52주 전 일요일로 시작
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const start = new Date(today)
-  start.setDate(start.getDate() - 364)
-  start.setDate(start.getDate() - start.getDay()) // 직전 일요일
+  // 오늘 = UTC 날짜 기준 (서버 데이터와 동일하게 UTC 사용)
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayMs  = utcMidnight(todayStr)
 
-  // 주(column) 배열 생성
+  // 364일 전 UTC 일요일로 시작
+  const startMs0 = todayMs - 364 * 86400 * 1000
+  const startDow = new Date(startMs0).getUTCDay()          // 0=일
+  const startMs  = startMs0 - startDow * 86400 * 1000      // 직전 일요일
+
+  // 주(column) 배열 생성 (UTC 기준)
   const weeks: (Date | null)[][] = []
-  const cur = new Date(start)
-  while (cur <= today) {
+  let curMs = startMs
+  while (curMs <= todayMs) {
     const week: (Date | null)[] = []
     for (let d = 0; d < 7; d++) {
-      week.push(cur <= today ? new Date(cur) : null)
-      cur.setDate(cur.getDate() + 1)
+      week.push(curMs <= todayMs ? new Date(curMs) : null)
+      curMs += 86400 * 1000
     }
     weeks.push(week)
   }
 
-  // 월 라벨: 각 월의 첫 번째 주 인덱스 계산
+  // 월 라벨: UTC 월 기준
   const monthLabels: { label: string; col: number }[] = []
   let lastMonth = -1
   weeks.forEach((week, col) => {
     const first = week.find((d) => d !== null)
-    if (first && first.getMonth() !== lastMonth) {
-      monthLabels.push({ label: KO_MONTHS[first.getMonth()], col })
-      lastMonth = first.getMonth()
+    if (first) {
+      const month = first.getUTCMonth()
+      if (month !== lastMonth) {
+        monthLabels.push({ label: KO_MONTHS[month], col })
+        lastMonth = month
+      }
     }
   })
 
