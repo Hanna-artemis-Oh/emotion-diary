@@ -7,9 +7,10 @@ import DateFilter from './DateFilter'
 export default async function StatsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>
+  searchParams: Promise<{ from?: string; to?: string; preset?: string }>
 }) {
-  const { from, to } = await searchParams
+  const { from, to, preset } = await searchParams
+  const isAll = preset === 'all'
 
   const today = new Date()
   const defaultFrom = new Date()
@@ -28,11 +29,13 @@ export default async function StatsPage({
     .select('emotion_label, emotion_color, emotion_emoji, created_at')
     .order('created_at', { ascending: false })
 
-  if (from || to) {
-    query.gte('created_at', fromDate.toISOString())
-    query.lte('created_at', toDate.toISOString())
-  } else {
-    query.gte('created_at', defaultFrom.toISOString())
+  if (!isAll) {
+    if (from || to) {
+      query.gte('created_at', fromDate.toISOString())
+      query.lte('created_at', toDate.toISOString())
+    } else {
+      query.gte('created_at', defaultFrom.toISOString())
+    }
   }
 
   const { data: diaries } = await query
@@ -68,9 +71,7 @@ export default async function StatsPage({
   const totalCount = diaries?.length ?? 0
   const topEmotion = frequency[0]
 
-  const rangeLabel = from || to
-    ? `${fromStr} ~ ${toStr}`
-    : '최근 30일'
+  const rangeLabel = isAll ? '전체 기간' : (from || to) ? `${fromStr} ~ ${toStr}` : '최근 30일'
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4">

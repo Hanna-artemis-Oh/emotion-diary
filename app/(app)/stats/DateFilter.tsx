@@ -19,15 +19,14 @@ export default function DateFilter({ from, to }: Props) {
   const searchParams = useSearchParams()
 
   function push(params: Record<string, string>) {
-    const next = new URLSearchParams(searchParams.toString())
+    const next = new URLSearchParams()
     Object.entries(params).forEach(([k, v]) => next.set(k, v))
     router.push(`/stats?${next.toString()}`)
   }
 
   function handlePreset(days: number) {
     if (days === 0) {
-      const next = new URLSearchParams()
-      router.push(`/stats?${next.toString()}`)
+      router.push('/stats?preset=all')
       return
     }
     const toDate = new Date()
@@ -40,6 +39,7 @@ export default function DateFilter({ from, to }: Props) {
   }
 
   const currentDays = (() => {
+    if (searchParams.get('preset') === 'all') return 0
     if (!searchParams.get('from') && !searchParams.get('to')) return 30
     const f = searchParams.get('from')
     const t = searchParams.get('to')
