@@ -73,6 +73,27 @@ export default async function StatsPage({
 
   const rangeLabel = isAll ? '전체 기간' : (from || to) ? `${fromStr} ~ ${toStr}` : '최근 30일'
 
+  // 잔디용 1년 데이터 (날짜 필터와 무관하게 항상 1년치)
+  const yearAgo = new Date()
+  yearAgo.setFullYear(yearAgo.getFullYear() - 1)
+  const { data: yearDiaries } = await supabase
+    .from('diaries')
+    .select('emotion_label, emotion_color, emotion_emoji, created_at')
+    .gte('created_at', yearAgo.toISOString())
+    .order('created_at', { ascending: true })
+
+  // 날짜별 최신 일기 1개만 사용
+  const heatmapMap = new Map<string, { emotion_color: string; emotion_label: string; emotion_emoji: string }>()
+  for (const d of yearDiaries ?? []) {
+    const dateStr = new Date(d.created_at).toISOString().slice(0, 10)
+    heatmapMap.set(dateStr, {
+      emotion_color: d.emotion_color ?? '#9CA3AF',
+      emotion_label: d.emotion_label ?? '',
+      emotion_emoji: d.emotion_emoji ?? '',
+    })
+  }
+  const heatmapData = Array.from(heatmapMap.entries()).map(([date, v]) => ({ date, ...v }))
+
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -117,7 +138,7 @@ export default async function StatsPage({
           </div>
         </div>
 
-        <EmotionCharts frequency={frequency} timeline={timeline} />
+        <EmotionCharts frequency={frequency} timeline={timeline} heatmapData={heatmapData} />
 
         <Link
           href="/diary/new"

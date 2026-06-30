@@ -8,10 +8,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  LineChart,
-  Line,
-  CartesianGrid,
 } from 'recharts'
+import EmotionHeatmap, { type HeatmapDay } from './EmotionHeatmap'
 
 type FrequencyItem = {
   emotion_label: string
@@ -30,9 +28,10 @@ type TimelineItem = {
 type Props = {
   frequency: FrequencyItem[]
   timeline: TimelineItem[]
+  heatmapData: HeatmapDay[]
 }
 
-export default function EmotionCharts({ frequency, timeline }: Props) {
+export default function EmotionCharts({ frequency, timeline, heatmapData }: Props) {
   return (
     <div className="space-y-8">
       {/* 감정 빈도 바 차트 */}
@@ -73,7 +72,10 @@ export default function EmotionCharts({ frequency, timeline }: Props) {
         )}
       </div>
 
-      {/* 최근 30일 타임라인 */}
+      {/* 감정 잔디 */}
+      <EmotionHeatmap data={heatmapData} />
+
+      {/* 최근 기록 타임라인 */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-1">최근 기록</h2>
         <p className="text-xs text-gray-400 mb-6">날짜별 감정 흐름</p>
