@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import EmotionCharts from './EmotionCharts'
+import EmotionTimeline from './EmotionTimeline'
+import EmotionHeatmap from './EmotionHeatmap'
 import DateFilter from './DateFilter'
 
 export default async function StatsPage({
@@ -70,10 +72,9 @@ export default async function StatsPage({
 
   const totalCount = diaries?.length ?? 0
   const topEmotion = frequency[0]
-
   const rangeLabel = isAll ? '전체 기간' : (from || to) ? `${fromStr} ~ ${toStr}` : '최근 30일'
 
-  // 잔디용 1년 데이터 (날짜 필터와 무관하게 항상 1년치)
+  // 잔디용 1년 데이터 (날짜 필터와 무관)
   const yearAgo = new Date()
   yearAgo.setFullYear(yearAgo.getFullYear() - 1)
   const { data: yearDiaries } = await supabase
@@ -82,7 +83,6 @@ export default async function StatsPage({
     .gte('created_at', yearAgo.toISOString())
     .order('created_at', { ascending: true })
 
-  // 날짜별 최신 일기 1개만 사용
   const heatmapMap = new Map<string, { emotion_color: string; emotion_label: string; emotion_emoji: string }>()
   for (const d of yearDiaries ?? []) {
     const dateStr = new Date(d.created_at).toISOString().slice(0, 10)
@@ -95,9 +95,10 @@ export default async function StatsPage({
   const heatmapData = Array.from(heatmapMap.entries()).map(([date, v]) => ({ date, ...v }))
 
   return (
-    <main className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <main className="min-h-screen bg-gray-50 py-10">
 
+      {/* 좁은 영역: 헤더 / 필터 / 요약 / 빈도 차트 */}
+      <div className="max-w-2xl mx-auto px-4 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">감정 통계</h1>
@@ -111,12 +112,10 @@ export default async function StatsPage({
           </Link>
         </div>
 
-        {/* 날짜 필터 */}
         <Suspense>
           <DateFilter from={fromStr} to={toStr} />
         </Suspense>
 
-        {/* 요약 카드 */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <p className="text-xs text-gray-400 mb-1">총 일기 수</p>
@@ -138,8 +137,17 @@ export default async function StatsPage({
           </div>
         </div>
 
-        <EmotionCharts frequency={frequency} timeline={timeline} heatmapData={heatmapData} />
+        <EmotionCharts frequency={frequency} />
+      </div>
 
+      {/* 넓은 영역: 감정 잔디 */}
+      <div className="max-w-5xl mx-auto px-4 mt-6">
+        <EmotionHeatmap data={heatmapData} />
+      </div>
+
+      {/* 좁은 영역: 최근 기록 / 버튼 */}
+      <div className="max-w-2xl mx-auto px-4 mt-6 space-y-6">
+        <EmotionTimeline timeline={timeline} />
         <Link
           href="/diary/new"
           className="block text-center rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
@@ -147,6 +155,7 @@ export default async function StatsPage({
           오늘 일기 쓰기
         </Link>
       </div>
+
     </main>
   )
 }

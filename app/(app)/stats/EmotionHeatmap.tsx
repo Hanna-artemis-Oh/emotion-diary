@@ -73,9 +73,9 @@ export default function EmotionHeatmap({ data }: { data: HeatmapDay[] }) {
       <div className="overflow-x-auto pb-1">
         {/* 월 라벨 + 그리드를 SVG로 렌더링 */}
         <svg
-          viewBox={`0 0 ${gridW + 24} ${gridH + 20}`}
-          width="100%"
-          style={{ display: 'block', minWidth: 320 }}
+          width={gridW + 24}
+          height={gridH + 20}
+          style={{ display: 'block' }}
         >
           {/* 요일 라벨 (월/수/금만 표시) */}
           {[1, 3, 5].map((dow) => (
