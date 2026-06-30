@@ -1,18 +1,41 @@
 import { createClient } from '@/lib/supabase/server'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import EmotionCharts from './EmotionCharts'
+import DateFilter from './DateFilter'
 
-export default async function StatsPage() {
+export default async function StatsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>
+}) {
+  const { from, to } = await searchParams
+
+  const today = new Date()
+  const defaultFrom = new Date()
+  defaultFrom.setDate(defaultFrom.getDate() - 30)
+
+  const fromDate = from ? new Date(`${from}T00:00:00`) : defaultFrom
+  const toDate = to ? new Date(`${to}T23:59:59`) : today
+
+  const fromStr = from ?? defaultFrom.toISOString().slice(0, 10)
+  const toStr = to ?? today.toISOString().slice(0, 10)
+
   const supabase = await createClient()
 
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-  const { data: diaries } = await supabase
+  const query = supabase
     .from('diaries')
     .select('emotion_label, emotion_color, emotion_emoji, created_at')
-    .gte('created_at', thirtyDaysAgo.toISOString())
     .order('created_at', { ascending: false })
+
+  if (from || to) {
+    query.gte('created_at', fromDate.toISOString())
+    query.lte('created_at', toDate.toISOString())
+  } else {
+    query.gte('created_at', defaultFrom.toISOString())
+  }
+
+  const { data: diaries } = await query
 
   // 감정별 빈도 집계
   const frequencyMap = new Map<string, { emotion_color: string; emotion_emoji: string; count: number }>()
@@ -33,7 +56,6 @@ export default async function StatsPage() {
     .map(([emotion_label, v]) => ({ emotion_label, ...v }))
     .sort((a, b) => b.count - a.count)
 
-  // 최근 30일 타임라인
   const timeline = (diaries ?? []).map((d) => ({
     date: new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' }).format(
       new Date(d.created_at)
@@ -46,14 +68,18 @@ export default async function StatsPage() {
   const totalCount = diaries?.length ?? 0
   const topEmotion = frequency[0]
 
+  const rangeLabel = from || to
+    ? `${fromStr} ~ ${toStr}`
+    : '최근 30일'
+
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto space-y-6">
 
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">감정 통계</h1>
-            <p className="mt-1 text-sm text-gray-500">최근 30일 기준</p>
+            <p className="mt-1 text-sm text-gray-500">{rangeLabel}</p>
           </div>
           <Link
             href="/history"
@@ -63,11 +89,19 @@ export default async function StatsPage() {
           </Link>
         </div>
 
+        {/* 날짜 필터 */}
+        <Suspense>
+          <DateFilter from={fromStr} to={toStr} />
+        </Suspense>
+
         {/* 요약 카드 */}
-        <div className="grid grid-cols-2 gap-3 mb-8">
+        <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <p className="text-xs text-gray-400 mb-1">총 일기 수</p>
-            <p className="text-3xl font-bold text-gray-900">{totalCount}<span className="text-sm font-normal text-gray-400 ml-1">개</span></p>
+            <p className="text-3xl font-bold text-gray-900">
+              {totalCount}
+              <span className="text-sm font-normal text-gray-400 ml-1">개</span>
+            </p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <p className="text-xs text-gray-400 mb-1">가장 많은 감정</p>
@@ -84,14 +118,12 @@ export default async function StatsPage() {
 
         <EmotionCharts frequency={frequency} timeline={timeline} />
 
-        <div className="mt-6">
-          <Link
-            href="/diary/new"
-            className="block text-center rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
-          >
-            오늘 일기 쓰기
-          </Link>
-        </div>
+        <Link
+          href="/diary/new"
+          className="block text-center rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
+        >
+          오늘 일기 쓰기
+        </Link>
       </div>
     </main>
   )
