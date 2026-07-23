@@ -1,13 +1,49 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { createDiary, type DiaryActionState } from '@/app/actions/diary'
+
+type PhotoDraft = { file: File; previewUrl: string }
 
 export default function NewDiaryPage() {
   const [state, action, pending] = useActionState<DiaryActionState, FormData>(
     createDiary,
     null
   )
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [photos, setPhotos] = useState<PhotoDraft[]>([])
+
+  useEffect(() => {
+    return () => {
+      photos.forEach((p) => URL.revokeObjectURL(p.previewUrl))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function syncFileInput(next: PhotoDraft[]) {
+    const dataTransfer = new DataTransfer()
+    next.forEach((p) => dataTransfer.items.add(p.file))
+    if (fileInputRef.current) fileInputRef.current.files = dataTransfer.files
+  }
+
+  function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(e.target.files ?? [])
+    if (selected.length === 0) return
+
+    const next = [
+      ...photos,
+      ...selected.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
+    ]
+    setPhotos(next)
+    syncFileInput(next)
+  }
+
+  function removePhoto(index: number) {
+    URL.revokeObjectURL(photos[index].previewUrl)
+    const next = photos.filter((_, i) => i !== index)
+    setPhotos(next)
+    syncFileInput(next)
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4">
@@ -45,6 +81,48 @@ export default function NewDiaryPage() {
               required
               className="w-full text-gray-700 placeholder-gray-400 border-none outline-none bg-transparent resize-none leading-relaxed"
             />
+          </div>
+
+          <div className="border-t border-gray-100 pt-4 space-y-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              name="photos"
+              accept="image/*"
+              multiple
+              onChange={handleFilesSelected}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              📷 사진 추가
+            </button>
+
+            {photos.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {photos.map((photo, index) => (
+                  <div key={index} className="relative shrink-0 w-20 h-20">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.previewUrl}
+                      alt={`첨부 사진 ${index + 1} 미리보기`}
+                      className="w-full h-full object-cover rounded-lg border border-gray-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(index)}
+                      aria-label="사진 제거"
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-900 text-white text-xs flex items-center justify-center hover:bg-gray-700 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {state?.error && (

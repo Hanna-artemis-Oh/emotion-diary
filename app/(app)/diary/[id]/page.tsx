@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { getSignedPhotoUrls } from '@/lib/supabase/photos'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import PhotoFilmStrip from './PhotoFilmStrip'
 
 export default async function DiaryPage({
   params,
@@ -17,6 +19,20 @@ export default async function DiaryPage({
     .single()
 
   if (!diary) notFound()
+
+  const { data: diaryPhotos } = await supabase
+    .from('diary_photos')
+    .select('id, storage_path')
+    .eq('diary_id', id)
+    .order('position', { ascending: true })
+
+  const urlByPath = await getSignedPhotoUrls(
+    supabase,
+    (diaryPhotos ?? []).map((p) => p.storage_path)
+  )
+  const photos = (diaryPhotos ?? [])
+    .filter((p) => urlByPath[p.storage_path])
+    .map((p) => ({ id: p.id, url: urlByPath[p.storage_path] }))
 
   const formattedDate = new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric',
@@ -48,6 +64,9 @@ export default async function DiaryPage({
             {diary.content}
           </p>
         </div>
+
+        {/* 첨부 사진 */}
+        <PhotoFilmStrip photos={photos} />
 
         {/* 액션 버튼 */}
         <div className="flex gap-3">
