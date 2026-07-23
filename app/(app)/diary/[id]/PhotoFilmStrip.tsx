@@ -103,7 +103,7 @@ export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: 
               setLightboxIndex(null)
             }}
             aria-label="닫기"
-            className="touch-manipulation absolute top-4 right-4 w-11 h-11 rounded-full bg-black/60 text-white text-xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
+            className="touch-manipulation absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-black/60 text-white text-xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
           >
             ✕
           </button>
@@ -116,7 +116,7 @@ export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: 
                 showPrev()
               }}
               aria-label="이전 사진"
-              className="touch-manipulation absolute left-4 w-11 h-11 rounded-full bg-black/60 text-white text-2xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
+              className="touch-manipulation absolute left-4 z-10 w-11 h-11 rounded-full bg-black/60 text-white text-2xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
             >
               ‹
             </button>
@@ -143,7 +143,7 @@ export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: 
                 showNext()
               }}
               aria-label="다음 사진"
-              className="touch-manipulation absolute right-4 w-11 h-11 rounded-full bg-black/60 text-white text-2xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
+              className="touch-manipulation absolute right-4 z-10 w-11 h-11 rounded-full bg-black/60 text-white text-2xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
             >
               ›
             </button>
