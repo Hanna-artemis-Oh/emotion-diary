@@ -5,35 +5,33 @@ import Image from 'next/image'
 
 export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: string }[] }) {
   const trackRef = useRef<HTMLDivElement>(null)
-  const isDraggingRef = useRef(false)
   const draggedRef = useRef(false)
-  const startXRef = useRef(0)
-  const startScrollLeftRef = useRef(0)
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
-  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+  // 데스크톱 마우스 드래그 스크롤. 터치 기기는 overflow-x-auto의 네이티브 스와이프로 동작하므로
+  // 별도 처리가 필요 없고, setPointerCapture를 쓰면 클릭 이벤트가 컨테이너로 리타겟되어
+  // 썸네일의 onClick이 아예 발생하지 않기 때문에 mouse 이벤트로 구현한다.
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
     const el = trackRef.current
     if (!el) return
-    isDraggingRef.current = true
     draggedRef.current = false
-    startXRef.current = e.clientX
-    startScrollLeftRef.current = el.scrollLeft
-    el.setPointerCapture(e.pointerId)
-  }
+    const startX = e.clientX
+    const startScrollLeft = el.scrollLeft
 
-  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!isDraggingRef.current) return
-    const el = trackRef.current
-    if (!el) return
-    const delta = e.clientX - startXRef.current
-    if (Math.abs(delta) > 5) draggedRef.current = true
-    el.scrollLeft = startScrollLeftRef.current - delta
-  }
+    function handleMouseMove(moveEvent: MouseEvent) {
+      const delta = moveEvent.clientX - startX
+      if (Math.abs(delta) > 5) draggedRef.current = true
+      el!.scrollLeft = startScrollLeft - delta
+    }
 
-  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
-    isDraggingRef.current = false
-    trackRef.current?.releasePointerCapture(e.pointerId)
+    function handleMouseUp() {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
   }
 
   function openLightbox(index: number) {
@@ -75,10 +73,7 @@ export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: 
 
       <div
         ref={trackRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        onMouseDown={handleMouseDown}
         className="flex gap-2 overflow-x-auto cursor-grab active:cursor-grabbing select-none"
       >
         {photos.map((photo, index) => (
