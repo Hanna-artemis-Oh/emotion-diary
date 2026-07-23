@@ -93,7 +93,7 @@ export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: 
 
       {lightboxIndex !== null && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          className="touch-manipulation fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
           onClick={() => setLightboxIndex(null)}
         >
           <button
@@ -103,7 +103,7 @@ export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: 
               setLightboxIndex(null)
             }}
             aria-label="닫기"
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white text-xl flex items-center justify-center hover:bg-white/20 transition-colors"
+            className="touch-manipulation absolute top-4 right-4 w-11 h-11 rounded-full bg-black/60 text-white text-xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
           >
             ✕
           </button>
@@ -116,7 +116,7 @@ export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: 
                 showPrev()
               }}
               aria-label="이전 사진"
-              className="absolute left-2 sm:left-4 w-10 h-10 rounded-full bg-white/10 text-white text-2xl flex items-center justify-center hover:bg-white/20 transition-colors"
+              className="touch-manipulation absolute left-2 sm:left-4 w-11 h-11 rounded-full bg-black/60 text-white text-2xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
             >
               ‹
             </button>
@@ -143,7 +143,7 @@ export default function PhotoFilmStrip({ photos }: { photos: { id: string; url: 
                 showNext()
               }}
               aria-label="다음 사진"
-              className="absolute right-2 sm:right-4 w-10 h-10 rounded-full bg-white/10 text-white text-2xl flex items-center justify-center hover:bg-white/20 transition-colors"
+              className="touch-manipulation absolute right-2 sm:right-4 w-11 h-11 rounded-full bg-black/60 text-white text-2xl flex items-center justify-center border border-white/20 hover:bg-black/80 transition-colors"
             >
               ›
             </button>
