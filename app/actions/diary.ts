@@ -6,6 +6,38 @@ import { createClient } from '@/lib/supabase/server'
 
 export type DiaryActionState = { error: string } | null
 
+async function uploadDiaryPhotos(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  diaryId: string,
+  files: File[],
+  startPosition: number
+) {
+  const rows: { diary_id: string; user_id: string; storage_path: string; position: number }[] = []
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    const ext = file.name.split('.').pop() || 'jpg'
+    const position = startPosition + i
+    const path = `${userId}/${diaryId}/${position}-${crypto.randomUUID()}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('diary-photos')
+      .upload(path, file, { contentType: file.type || undefined })
+
+    if (uploadError) {
+      console.error('[uploadDiaryPhotos] upload error:', uploadError)
+      continue
+    }
+    rows.push({ diary_id: diaryId, user_id: userId, storage_path: path, position })
+  }
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from('diary_photos').insert(rows)
+    if (error) console.error('[uploadDiaryPhotos] insert error:', error)
+  }
+}
+
 const EMOTION_PROMPT = `사용자의 일기를 읽고 주요 감정을 분석하세요.
 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
 
@@ -82,36 +114,93 @@ export async function createDiary(
   )
 
   if (photos.length > 0) {
-    const uploadedPaths: { storage_path: string; position: number }[] = []
-
-    for (let i = 0; i < photos.length; i++) {
-      const file = photos[i]
-      const ext = file.name.split('.').pop() || 'jpg'
-      const path = `${user.id}/${data.id}/${i}-${crypto.randomUUID()}.${ext}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('diary-photos')
-        .upload(path, file, { contentType: file.type || undefined })
-
-      if (uploadError) {
-        console.error('[createDiary] photo upload error:', uploadError)
-        continue
-      }
-      uploadedPaths.push({ storage_path: path, position: i })
-    }
-
-    if (uploadedPaths.length > 0) {
-      const { error: photoInsertError } = await supabase.from('diary_photos').insert(
-        uploadedPaths.map((p) => ({
-          diary_id: data.id,
-          user_id: user.id,
-          storage_path: p.storage_path,
-          position: p.position,
-        }))
-      )
-      if (photoInsertError) console.error('[createDiary] photo record error:', photoInsertError)
-    }
+    await uploadDiaryPhotos(supabase, user.id, data.id, photos, 0)
   }
 
   redirect(`/diary/${data.id}`)
+}
+
+export async function updateDiary(
+  diaryId: string,
+  _prevState: DiaryActionState,
+  formData: FormData
+): Promise<DiaryActionState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
+  const title = (formData.get('title') as string).trim()
+  const content = (formData.get('content') as string).trim()
+
+  if (!content) return { error: '일기 내용을 입력해주세요.' }
+
+  const { error } = await supabase
+    .from('diaries')
+    .update({ title: title || null, content })
+    .eq('id', diaryId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: '수정에 실패했습니다. 다시 시도해주세요.' }
+
+  // 제거된 기존 사진 삭제 (Storage + 레코드)
+  const removedPhotoIds = formData.getAll('removedPhotoIds') as string[]
+  if (removedPhotoIds.length > 0) {
+    const { data: photosToRemove } = await supabase
+      .from('diary_photos')
+      .select('id, storage_path')
+      .in('id', removedPhotoIds)
+      .eq('diary_id', diaryId)
+      .eq('user_id', user.id)
+
+    if (photosToRemove && photosToRemove.length > 0) {
+      await supabase.storage
+        .from('diary-photos')
+        .remove(photosToRemove.map((p) => p.storage_path))
+      await supabase
+        .from('diary_photos')
+        .delete()
+        .in('id', photosToRemove.map((p) => p.id))
+    }
+  }
+
+  // 새로 추가된 사진 업로드 (기존 사진 뒤에 이어 붙임)
+  const newPhotos = formData.getAll('newPhotos').filter(
+    (f): f is File => f instanceof File && f.size > 0
+  )
+
+  if (newPhotos.length > 0) {
+    const { data: lastPhoto } = await supabase
+      .from('diary_photos')
+      .select('position')
+      .eq('diary_id', diaryId)
+      .order('position', { ascending: false })
+      .limit(1)
+
+    const startPosition = (lastPhoto?.[0]?.position ?? -1) + 1
+    await uploadDiaryPhotos(supabase, user.id, diaryId, newPhotos, startPosition)
+  }
+
+  redirect(`/diary/${diaryId}`)
+}
+
+export async function deleteDiary(diaryId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
+  const { data: photos } = await supabase
+    .from('diary_photos')
+    .select('storage_path')
+    .eq('diary_id', diaryId)
+    .eq('user_id', user.id)
+
+  if (photos && photos.length > 0) {
+    await supabase.storage.from('diary-photos').remove(photos.map((p) => p.storage_path))
+  }
+
+  await supabase.from('diaries').delete().eq('id', diaryId).eq('user_id', user.id)
+
+  redirect('/history')
 }
