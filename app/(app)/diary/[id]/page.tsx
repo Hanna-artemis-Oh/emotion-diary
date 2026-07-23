@@ -3,6 +3,7 @@ import { getSignedPhotoUrls } from '@/lib/supabase/photos'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import PhotoFilmStrip from './PhotoFilmStrip'
+import DeleteDiaryButton from './DeleteDiaryButton'
 
 export default async function DiaryPage({
   params,
@@ -67,6 +68,17 @@ export default async function DiaryPage({
 
         {/* 첨부 사진 */}
         <PhotoFilmStrip photos={photos} />
+
+        {/* 일기 관리 버튼 */}
+        <div className="flex gap-3">
+          <Link
+            href={`/diary/${diary.id}/edit`}
+            className="flex-1 text-center rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            수정하기
+          </Link>
+          <DeleteDiaryButton diaryId={diary.id} />
+        </div>
 
         {/* 액션 버튼 */}
         <div className="flex gap-3">
