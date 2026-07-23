@@ -76,5 +76,42 @@ export async function createDiary(
 
   if (error) return { error: '저장에 실패했습니다. 다시 시도해주세요.' }
 
+  // 첨부 사진 업로드 (선택된 순서대로 position 부여)
+  const photos = formData.getAll('photos').filter(
+    (f): f is File => f instanceof File && f.size > 0
+  )
+
+  if (photos.length > 0) {
+    const uploadedPaths: { storage_path: string; position: number }[] = []
+
+    for (let i = 0; i < photos.length; i++) {
+      const file = photos[i]
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `${user.id}/${data.id}/${i}-${crypto.randomUUID()}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('diary-photos')
+        .upload(path, file, { contentType: file.type || undefined })
+
+      if (uploadError) {
+        console.error('[createDiary] photo upload error:', uploadError)
+        continue
+      }
+      uploadedPaths.push({ storage_path: path, position: i })
+    }
+
+    if (uploadedPaths.length > 0) {
+      const { error: photoInsertError } = await supabase.from('diary_photos').insert(
+        uploadedPaths.map((p) => ({
+          diary_id: data.id,
+          user_id: user.id,
+          storage_path: p.storage_path,
+          position: p.position,
+        }))
+      )
+      if (photoInsertError) console.error('[createDiary] photo record error:', photoInsertError)
+    }
+  }
+
   redirect(`/diary/${data.id}`)
 }
