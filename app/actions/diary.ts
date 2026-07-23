@@ -26,8 +26,12 @@ export async function createDiary(
 
   const title = (formData.get('title') as string).trim()
   const content = (formData.get('content') as string).trim()
+  const date = (formData.get('date') as string) || new Date().toISOString().slice(0, 10)
 
   if (!content) return { error: '일기 내용을 입력해주세요.' }
+  if (date > new Date().toISOString().slice(0, 10)) {
+    return { error: '미래 날짜는 선택할 수 없습니다.' }
+  }
 
   // Claude Haiku 감정 분석
   const anthropic = new Anthropic()
@@ -65,6 +69,7 @@ export async function createDiary(
       emotion_label: emotion.emotion_label,
       emotion_color: emotion.emotion_color,
       emotion_emoji: emotion.emotion_emoji,
+      created_at: `${date}T00:00:00.000Z`,
     })
     .select('id')
     .single()

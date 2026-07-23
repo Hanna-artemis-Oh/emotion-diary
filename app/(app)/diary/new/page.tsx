@@ -20,12 +20,20 @@ export default function NewDiaryPage() {
         </div>
 
         <form action={action} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-          <div>
+          <div className="flex items-center justify-between gap-4">
             <input
               name="title"
               type="text"
               placeholder="제목 (선택)"
               className="w-full text-lg font-medium text-gray-900 placeholder-gray-400 border-none outline-none bg-transparent"
+            />
+            <input
+              name="date"
+              type="date"
+              defaultValue={new Date().toISOString().slice(0, 10)}
+              max={new Date().toISOString().slice(0, 10)}
+              required
+              className="shrink-0 text-sm text-gray-500 border-none outline-none bg-transparent"
             />
           </div>
 
