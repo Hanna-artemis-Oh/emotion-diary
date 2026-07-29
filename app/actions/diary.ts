@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { HfInference } from '@huggingface/inference'
 import { createClient } from '@/lib/supabase/server'
 
 export type DiaryActionState = { error: string } | null
@@ -69,39 +70,26 @@ export async function createDiary(
   let emotion: { emotion_label: string; emotion_color: string; emotion_emoji: string }
 
   try {
-    const HF_MODEL = 'Hanna-artemis/korean-emotion-diary'
-    const HF_TOKEN = process.env.HF_TOKEN
+    const hf = new HfInference(process.env.HF_TOKEN)
 
-    console.log('HF_TOKEN 존재:', !!HF_TOKEN)
-    console.log('요청 URL:', `https://api-inference.huggingface.co/models/${HF_MODEL}`)
-
-    // 콜드 스타트 대비 재시도 (모델 로딩 중이면 503 반환)
-    let result: { label: string; score: number }[][] | undefined
+    // 콜드 스타트 대비 재시도 (모델 로딩 중이면 에러 발생)
+    let result: { label: string; score: number }[] | undefined
     for (let attempt = 0; attempt < 3; attempt++) {
-      const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${HF_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ inputs: content }),
-      })
-
-      if (response.status === 503) {
+      try {
+        result = await hf.textClassification({
+          model: 'Hanna-artemis/korean-emotion-diary',
+          inputs: content,
+        })
+        break
+      } catch (e) {
+        if (attempt === 2) throw e
         await new Promise((resolve) => setTimeout(resolve, 5000))
-        continue
       }
-
-      if (!response.ok) throw new Error(`HF API error: ${response.status}`)
-
-      result = await response.json()
-      break
     }
 
     if (!result) throw new Error('모델 로딩 타임아웃')
 
-    // result: [[{label, score}, ...]] 형태로 반환
-    const topLabel = result[0][0].label
+    const topLabel = result[0].label
     const mapped = EMOTION_MAP[topLabel] ?? { label: '평온', color: '#A8D8EA', emoji: '😌' }
 
     emotion = {
