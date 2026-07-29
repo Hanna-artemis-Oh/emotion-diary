@@ -72,6 +72,9 @@ export async function createDiary(
     const HF_MODEL = 'Hanna-artemis/korean-emotion-diary'
     const HF_TOKEN = process.env.HF_TOKEN
 
+    console.log('HF_TOKEN 존재:', !!HF_TOKEN)
+    console.log('요청 URL:', `https://api-inference.huggingface.co/models/${HF_MODEL}`)
+
     // 콜드 스타트 대비 재시도 (모델 로딩 중이면 503 반환)
     let result: { label: string; score: number }[][] | undefined
     for (let attempt = 0; attempt < 3; attempt++) {
