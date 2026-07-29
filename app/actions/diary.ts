@@ -1,7 +1,6 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { HfInference } from '@huggingface/inference'
 import { createClient } from '@/lib/supabase/server'
 
 export type DiaryActionState = { error: string } | null
@@ -70,26 +69,19 @@ export async function createDiary(
   let emotion: { emotion_label: string; emotion_color: string; emotion_emoji: string }
 
   try {
-    const hf = new HfInference(process.env.HF_TOKEN)
-
-    // 콜드 스타트 대비 재시도 (모델 로딩 중이면 에러 발생)
-    let result: { label: string; score: number }[] | undefined
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        result = await hf.textClassification({
-          model: 'Hanna-artemis/korean-emotion-diary',
-          inputs: content,
-        })
-        break
-      } catch (e) {
-        if (attempt === 2) throw e
-        await new Promise((resolve) => setTimeout(resolve, 5000))
+    const response = await fetch(
+      'https://emotion-api-298334854963.asia-northeast3.run.app/predict',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: content }),
       }
-    }
+    )
 
-    if (!result) throw new Error('모델 로딩 타임아웃')
+    if (!response.ok) throw new Error(`API error: ${response.status}`)
 
-    const topLabel = result[0].label
+    const result = await response.json()
+    const topLabel = result.label as string
     const mapped = EMOTION_MAP[topLabel] ?? { label: '평온', color: '#A8D8EA', emoji: '😌' }
 
     emotion = {
@@ -98,7 +90,7 @@ export async function createDiary(
       emotion_emoji: mapped.emoji,
     }
   } catch (e) {
-    console.error('[createDiary] HF API error:', e)
+    console.error('[createDiary] API error:', e)
     return { error: '감정 분석 중 오류가 발생했습니다. 다시 시도해주세요.' }
   }
 
