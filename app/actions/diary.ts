@@ -72,20 +72,33 @@ export async function createDiary(
     const HF_MODEL = 'Hanna-artemis/korean-emotion-diary'
     const HF_TOKEN = process.env.HF_TOKEN
 
-    const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inputs: content }),
-    })
+    // 콜드 스타트 대비 재시도 (모델 로딩 중이면 503 반환)
+    let result: { label: string; score: number }[][] | undefined
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${HF_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: content }),
+      })
 
-    if (!response.ok) throw new Error(`HF API error: ${response.status}`)
+      if (response.status === 503) {
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+        continue
+      }
 
-    const result = await response.json()
+      if (!response.ok) throw new Error(`HF API error: ${response.status}`)
+
+      result = await response.json()
+      break
+    }
+
+    if (!result) throw new Error('모델 로딩 타임아웃')
+
     // result: [[{label, score}, ...]] 형태로 반환
-    const topLabel = result[0][0].label as string
+    const topLabel = result[0][0].label
     const mapped = EMOTION_MAP[topLabel] ?? { label: '평온', color: '#A8D8EA', emoji: '😌' }
 
     emotion = {
