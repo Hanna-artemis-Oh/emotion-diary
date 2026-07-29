@@ -1,7 +1,6 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 
 export type DiaryActionState = { error: string } | null
@@ -38,14 +37,15 @@ async function uploadDiaryPhotos(
   }
 }
 
-const EMOTION_PROMPT = `사용자의 일기를 읽고 주요 감정을 분석하세요.
-아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
-
-{
-  "emotion_label": "감정 이름 (기쁨/슬픔/불안/분노/평온/설렘/피곤/외로움/감사/뿌듯함 중 가장 적합한 하나)",
-  "emotion_color": "감정에 어울리는 HEX 색상 코드 (예: #FFD93D)",
-  "emotion_emoji": "감정을 나타내는 이모지 하나"
-}`
+const EMOTION_MAP: Record<string, { label: string; color: string; emoji: string }> = {
+  happiness: { label: '기쁨', color: '#FFD93D', emoji: '😊' },
+  neutral: { label: '평온', color: '#A8D8EA', emoji: '😌' },
+  sadness: { label: '슬픔', color: '#6C8EBF', emoji: '😢' },
+  angry: { label: '분노', color: '#FF6B6B', emoji: '😠' },
+  disgust: { label: '혐오', color: '#9B8EA8', emoji: '🤢' },
+  fear: { label: '불안', color: '#B8860B', emoji: '😨' },
+  surprise: { label: '설렘', color: '#FF9F43', emoji: '😲' },
+}
 
 export async function createDiary(
   _prevState: DiaryActionState,
@@ -65,29 +65,36 @@ export async function createDiary(
     return { error: '미래 날짜는 선택할 수 없습니다.' }
   }
 
-  // Claude Haiku 감정 분석
-  const anthropic = new Anthropic()
+  // 파인튜닝 모델 감정 분석
   let emotion: { emotion_label: string; emotion_color: string; emotion_emoji: string }
 
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 256,
-      messages: [
-        {
-          role: 'user',
-          content: `${EMOTION_PROMPT}\n\n일기:\n${content}`,
-        },
-      ],
+    const HF_MODEL = 'Hanna-artemis/korean-emotion-diary'
+    const HF_TOKEN = process.env.HF_TOKEN
+
+    const response = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${HF_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: content }),
     })
 
-    const block = message.content[0]
-    if (block.type !== 'text') return { error: '감정 분석에 실패했습니다.' }
+    if (!response.ok) throw new Error(`HF API error: ${response.status}`)
 
-    const cleaned = block.text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
-    emotion = JSON.parse(cleaned)
+    const result = await response.json()
+    // result: [[{label, score}, ...]] 형태로 반환
+    const topLabel = result[0][0].label as string
+    const mapped = EMOTION_MAP[topLabel] ?? { label: '평온', color: '#A8D8EA', emoji: '😌' }
+
+    emotion = {
+      emotion_label: mapped.label,
+      emotion_color: mapped.color,
+      emotion_emoji: mapped.emoji,
+    }
   } catch (e) {
-    console.error('[createDiary] Claude API error:', e)
+    console.error('[createDiary] HF API error:', e)
     return { error: '감정 분석 중 오류가 발생했습니다. 다시 시도해주세요.' }
   }
 
